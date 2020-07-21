@@ -5,9 +5,11 @@ import sys
 class CPU:
     """Main CPU class."""
 
-    def __init__(self):
-        """Construct a new CPU."""
-        pass
+    def __init__(self, ram=None, reg=None, pc=0):
+        self.ram = [0] * 256
+        self.reg = [0] * 8
+        self.pc = pc
+
 
     def load(self):
         """Load a program into memory."""
@@ -27,8 +29,28 @@ class CPU:
         ]
 
         for instruction in program:
-            self.ram[address] = instruction
+            self.ram_write(instruction, address)
             address += 1
+            # # temp LDI:
+            # if instruction == 0b10000010:
+            #     reg_num = program[address + 1]
+            #     value = program[address + 2]
+            #     self.reg[reg_num] = value
+            #     address += 3
+            # # temp PRN:
+            # if instruction == 0b01000111:
+            #     reg_num = program[address + 1]
+            #     print(self.reg[reg_num])
+            #     address += 2
+
+
+    def ram_read(self, MAR): # or PC
+        '''reads RAM value at pc index'''
+        return self.ram[MAR]
+
+
+    def ram_write(self, MDR, MAR):
+        self.ram[MAR] = MDR
 
 
     def alu(self, op, reg_a, reg_b):
@@ -37,6 +59,7 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -62,4 +85,26 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        running = True
+        while running:
+            IR = self.ram[self.pc]
+            operand_a, operand_b = self.ram_read(self.pc+1), self.ram_read(self.pc+2)
+
+            # LDI:
+            if IR == 0b10000010:
+                reg_num = operand_a
+                value = operand_b
+                self.reg[reg_num] = value
+                self.pc += 3
+            # PRN:
+            elif IR == 0b01000111:
+                reg_num = operand_a
+                print(self.reg[reg_num])
+                self.pc += 2
+
+            elif IR == 0b00000001:
+                running = False
+                self.pc += 1
+
+            else:
+                self.pc += 1
