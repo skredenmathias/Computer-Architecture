@@ -9,42 +9,54 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = pc
+        self.branch_table = {
+            0b10000010:self.LDI,
+            0b01000111:self.PRN,
+            0b00000001:self.HLT,
+            0b10100010:self.MUL
+        }
 
 
-    def load(self):
+    def load(self, filename):
         """Load a program into memory."""
+        with open(filename) as f:
+            address = 0
 
-        address = 0
+            for line in f:
+                line = line.split('#')
 
-        # For now, we've just hardcoded a program:
+                try:
+                    v = int(line[0], 2)
+                except ValueError:
+                    continue
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
-
-        for instruction in program:
-            self.ram_write(instruction, address)
-            address += 1
-            # # temp LDI:
-            # if instruction == 0b10000010:
-            #     reg_num = program[address + 1]
-            #     value = program[address + 2]
-            #     self.reg[reg_num] = value
-            #     address += 3
-            # # temp PRN:
-            # if instruction == 0b01000111:
-            #     reg_num = program[address + 1]
-            #     print(self.reg[reg_num])
-            #     address += 2
+                self.ram[address] = v
+                address += 1
 
 
-    def ram_read(self, MAR): # or PC
+    def LDI(self, op_a, op_b):
+        reg_num = op_a
+        value = op_b
+        self.reg[reg_num] = value
+        self.pc += 3
+
+    def PRN(self, op_a, op_b=None):
+        reg_num = op_a
+        print(self.reg[reg_num])
+        self.pc += 2
+
+    def HLT(self, op_a=None, op_b=None):
+        exit()
+        self.pc += 1
+
+    def MUL(self, op_a, op_b):
+        reg_num_a = op_a
+        reg_num_b = op_b
+        self.reg[reg_num_a] *= self.reg[reg_num_b]
+        self.pc += 3
+
+
+    def ram_read(self, MAR):
         '''reads RAM value at pc index'''
         return self.ram[MAR]
 
@@ -62,6 +74,7 @@ class CPU:
 
         else:
             raise Exception("Unsupported ALU operation")
+        
 
     def trace(self):
         """
@@ -87,24 +100,51 @@ class CPU:
         """Run the CPU."""
         running = True
         while running:
+            self.trace()
             IR = self.ram[self.pc]
-            operand_a, operand_b = self.ram_read(self.pc+1), self.ram_read(self.pc+2)
+            op_a, op_b = self.ram_read(self.pc+1), self.ram_read(self.pc+2)
 
-            # LDI:
-            if IR == 0b10000010:
-                reg_num = operand_a
-                value = operand_b
-                self.reg[reg_num] = value
-                self.pc += 3
-            # PRN:
-            elif IR == 0b01000111:
-                reg_num = operand_a
-                print(self.reg[reg_num])
-                self.pc += 2
-
-            elif IR == 0b00000001:
-                running = False
-                self.pc += 1
+            if IR in self.branch_table:
+                action = self.branch_table[IR]
+                action(op_a, op_b)
 
             else:
-                self.pc += 1
+               self.pc += 1
+
+
+            # # LDI:
+            # if IR == 0b10000010:
+            #     reg_num = operand_a
+            #     value = operand_b
+            #     self.reg[reg_num] = value
+            #     self.pc += 3
+            # # PRN:
+            # elif IR == 0b01000111:
+            #     reg_num = operand_a
+            #     print(self.reg[reg_num])
+            #     self.pc += 2
+
+            # elif IR == 0b00000001:
+            #     running = False
+            #     self.pc += 1
+
+            # else:
+            #     self.pc += 1
+
+        # address = 0
+
+        # # For now, we've just hardcoded a program:
+
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
+
+        # for instruction in program:
+        #     self.ram_write(instruction, address)
+        #     address += 1
