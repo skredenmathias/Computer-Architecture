@@ -2,18 +2,66 @@
 
 import sys
 
+
 class CPU:
     """Main CPU class."""
 
-    def __init__(self, ram=None, reg=None, pc=0):
+    def __init__(self, ram=None, reg=None, pc=0, SP=None):
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = pc
+        self.SP = 7
+        self.reg[self.SP] = 244
         self.branch_table = {
-            0b10000010:self.LDI,
-            0b01000111:self.PRN,
+            # ALU
+            0b10100000:self.ADD,
+            # SUB  0b10100001 
+            0b10100010:self.MUL,
+            # DIV  0b10100011
+            # MOD  0b10100100
+
+            # INC  0b01100101
+            # DEC  0b01100110
+
+            # CMP  0b10100111
+
+            # AND  0b10101000
+            # NOT  0b01101001
+            # OR   0b10101010
+            # XOR  0b10101011
+            # SHL  0b10101100
+            # SHR  0b10101101
+
+            # PC mutators
+            0b01010000:self.CALL,
+            0b00010001:self.RET,
+
+            # INT  0b01010010:self.INT,
+            # IRET 0b00010011:self.IRET,
+
+            # JMP  0b01010100:self.JMP,
+            # JEQ  0b01010101:self.JEQ,
+            # JNE  0b01010110:self.JNE,
+            # JGT  0b01010111:self.JGT,
+            # JLT  0b01011000:self.JLT,
+            # JLE  0b01011001:self.JLE,
+            # JGE  0b01011010:self.JGE,
+
+            # Other
+            # 0b00000000:self.NOP,
+
             0b00000001:self.HLT,
-            0b10100010:self.MUL
+
+            0b10000010:self.LDI,
+
+            # 0b10000011:self.LD,
+            # 0b10000100:self.ST,
+
+            0b01000101:self.PUSH,
+            0b01000110:self.POP,
+
+            0b01000111:self.PRN,
+            # 0b01001000:self.PRA
         }
 
 
@@ -45,15 +93,56 @@ class CPU:
         print(self.reg[reg_num])
         self.pc += 2
 
+
     def HLT(self, op_a=None, op_b=None):
         exit()
         self.pc += 1
+
 
     def MUL(self, op_a, op_b):
         reg_num_a = op_a
         reg_num_b = op_b
         self.reg[reg_num_a] *= self.reg[reg_num_b]
         self.pc += 3
+
+
+    def ADD(self, op_a, op_b):
+        reg_num_a = op_a
+        reg_num_b = op_b
+        self.reg[reg_num_a] += self.reg[reg_num_b]
+        self.pc += 3
+
+
+    def PUSH(self, op_a, op_b=None):
+        # Decrement SP
+        self.reg[self.SP] -= 1
+        # Get the value from RAM instruction
+        reg_num = op_a
+        value = self.reg[reg_num]
+        # Find the index in the register
+        top_of_stack_addr = self.reg[self.SP]
+        # Store it
+        self.ram[top_of_stack_addr] = value
+        self.pc += 2
+
+
+    def POP(self, op_a, op_b=None):
+        reg_num = op_a
+        self.reg[reg_num] = self.ram[self.reg[self.SP]]
+        self.reg[self.SP] += 1
+        self.pc += 2
+
+
+    def CALL(self, op_a, op_b=None):
+        return_addr = self.pc + 2
+        self.reg[self.SP] -= 1
+        self.ram[self.reg[self.SP]] = return_addr
+        reg_num = op_a
+        self.pc = self.reg[reg_num]
+
+
+    def RET(self, op_a=None, op_b=None):
+        self.pc = self.ram[self.reg[self.SP]]
 
 
     def ram_read(self, MAR):
@@ -96,6 +185,7 @@ class CPU:
 
         print()
 
+
     def run(self):
         """Run the CPU."""
         running = True
@@ -110,41 +200,3 @@ class CPU:
 
             else:
                self.pc += 1
-
-
-            # # LDI:
-            # if IR == 0b10000010:
-            #     reg_num = operand_a
-            #     value = operand_b
-            #     self.reg[reg_num] = value
-            #     self.pc += 3
-            # # PRN:
-            # elif IR == 0b01000111:
-            #     reg_num = operand_a
-            #     print(self.reg[reg_num])
-            #     self.pc += 2
-
-            # elif IR == 0b00000001:
-            #     running = False
-            #     self.pc += 1
-
-            # else:
-            #     self.pc += 1
-
-        # address = 0
-
-        # # For now, we've just hardcoded a program:
-
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010, # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111, # PRN R0
-        #     0b00000000,
-        #     0b00000001, # HLT
-        # ]
-
-        # for instruction in program:
-        #     self.ram_write(instruction, address)
-        #     address += 1
