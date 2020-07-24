@@ -6,12 +6,15 @@ import sys
 class CPU:
     """Main CPU class."""
 
-    def __init__(self, ram=None, reg=None, pc=0, SP=None):
+    def __init__(self, ram=None, reg=None, pc=0, SP=None, FL=0, FL_L=0, FL_G=0):
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = pc
         self.SP = 7
         self.reg[self.SP] = 244
+        self.FL = FL
+        self.FL_L = FL_L
+        self.FL_G = FL_G
         self.branch_table = {
             # ALU
             0b10100000:self.ADD,
@@ -23,7 +26,7 @@ class CPU:
             # INC  0b01100101
             # DEC  0b01100110
 
-            # CMP  0b10100111
+            0b10100111:self.CMP,
 
             # AND  0b10101000
             # NOT  0b01101001
@@ -36,16 +39,16 @@ class CPU:
             0b01010000:self.CALL,
             0b00010001:self.RET,
 
-            # INT  0b01010010:self.INT,
-            # IRET 0b00010011:self.IRET,
+            # 0b01010010:self.INT,
+            # 0b00010011:self.IRET,
 
-            # JMP  0b01010100:self.JMP,
-            # JEQ  0b01010101:self.JEQ,
-            # JNE  0b01010110:self.JNE,
-            # JGT  0b01010111:self.JGT,
-            # JLT  0b01011000:self.JLT,
-            # JLE  0b01011001:self.JLE,
-            # JGE  0b01011010:self.JGE,
+            0b01010100:self.JMP,
+            0b01010101:self.JEQ,
+            0b01010110:self.JNE,
+            # 0b01010111:self.JGT,
+            # 0b01011000:self.JLT,
+            #  0b01011001:self.JLE,
+            # 0b01011010:self.JGE,
 
             # Other
             # 0b00000000:self.NOP,
@@ -143,6 +146,40 @@ class CPU:
 
     def RET(self, op_a=None, op_b=None):
         self.pc = self.ram[self.reg[self.SP]]
+
+
+    def CMP(self, op_a, op_b):
+        reg_num1 = op_a
+        reg_num2 = op_b
+        registerA = self.reg[reg_num1]
+        registerB = self.reg[reg_num2]
+
+        # if registerA < registerB:
+        #     self.FL_L = 1
+        # elif registerA > registerB:
+        #     self.FL_G = 1
+        if registerA == registerB:
+            self.FL = 1
+        self.pc += 3
+
+
+    def JMP(self, op_a, op_b=None):
+        reg_num = op_a
+        self.pc = self.reg[reg_num]
+
+
+    def JEQ(self, op_a, op_b=None):
+        if self.FL == 1:
+            self.JMP(op_a)
+        else:
+            self.pc += 2
+
+
+    def JNE(self, op_a, op_b=None):
+        if self.FL == 0:
+            self.JMP(op_a)
+        else:
+            self.pc += 2
 
 
     def ram_read(self, MAR):
