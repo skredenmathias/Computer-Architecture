@@ -154,12 +154,12 @@ class CPU:
         registerA = self.reg[reg_num1]
         registerB = self.reg[reg_num2]
 
-        # if registerA < registerB:
-        #     self.FL_L = 1
-        # elif registerA > registerB:
-        #     self.FL_G = 1
+        if registerA < registerB:
+            self.FL = 0b100
+        elif registerA > registerB:
+            self.FL = 0b010
         if registerA == registerB:
-            self.FL = 1
+            self.FL = 0b001
         self.pc += 3
 
 
@@ -169,14 +169,14 @@ class CPU:
 
 
     def JEQ(self, op_a, op_b=None):
-        if self.FL == 1:
+        if (self.FL & 0b001) == 1:
             self.JMP(op_a)
         else:
             self.pc += 2
 
 
     def JNE(self, op_a, op_b=None):
-        if self.FL == 0:
+        if (self.FL & 0b001) == 0:
             self.JMP(op_a)
         else:
             self.pc += 2
